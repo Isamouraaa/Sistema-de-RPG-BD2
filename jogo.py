@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from jogador import Jogador
 from personagem import Personagem
 
@@ -9,6 +11,7 @@ class Jogo:
         id_jogo: int | None,
         nome: str,
         descricao: str,
+        id_mestre: int | None = None,
         jogadores: list[Jogador] | None = None,
         npcs: list[Personagem] | None = None,
         criaturas: list[Personagem] | None = None,
@@ -16,6 +19,7 @@ class Jogo:
         self._id_jogo = id_jogo
         self._nome = nome
         self._descricao = descricao
+        self._id_mestre = id_mestre
         self._jogadores: list[Jogador] = jogadores or []
         self._npcs: list[Personagem] = npcs or []
         self._criaturas: list[Personagem] = criaturas or []
@@ -45,6 +49,14 @@ class Jogo:
         self._descricao = valor
 
     @property
+    def id_mestre(self) -> int | None:
+        return self._id_mestre
+
+    @id_mestre.setter
+    def id_mestre(self, valor: int | None) -> None:
+        self._id_mestre = valor
+
+    @property
     def jogadores(self) -> list[Jogador]:
         return self._jogadores
 
@@ -60,5 +72,5 @@ class Jogo:
     def __repr__(self) -> str:
         return (
             f"Jogo(id={self._id_jogo!r}, nome={self._nome!r}, "
-            f"descricao={self._descricao!r})"
+            f"descricao={self._descricao!r}, id_mestre={self._id_mestre!r})"
         )

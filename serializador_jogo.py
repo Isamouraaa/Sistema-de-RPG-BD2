@@ -25,6 +25,7 @@ class SerializadorJogo:
                         id_jogo=item.get("id_jogo"),
                         nome=item["nome"],
                         descricao=item["descricao"],
+                        id_mestre=item.get("id_mestre"),
                     )
                 )
             except KeyError as exc:
@@ -37,4 +38,5 @@ class SerializadorJogo:
             "id_jogo": jogo.id_jogo,
             "nome": jogo.nome,
             "descricao": jogo.descricao,
+            "id_mestre": jogo.id_mestre,
         }
