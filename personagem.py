@@ -1,0 +1,2 @@
+class Personagem:
+    """:9"""

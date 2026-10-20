@@ -1,0 +1,2 @@
+class Jogador:
+    """:3"""
