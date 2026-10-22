@@ -7,17 +7,17 @@ class PersonagemCrud:
 
     def __init__(self, conexao: sqlite3.Connection) -> None:
         self._conexao = conexao
-        self._criar_tabela()
+        self._criar_tabelas()
 
         '''    def __init__(self,idPersonagem,nomePersonagem,descricao,tipo,raca,
                  classe,forca,inteligencia,vigor,destreza,sabedoria,
                  iniciativa,habilidades,idJogador):
         '''
 
-    def _criar_tabela(self) -> None:
-        sql = """
+    def _criar_tabelas(self) -> None:
+        sql1 = """
             CREATE TABLE IF NOT EXISTS personagens (
-                _idPersonagem   INTEGER PRIMARY KEY AUTOINCREMENT,
+                _idPersonagem           INTEGER PRIMARY KEY AUTOINCREMENT,
                 _nomePersonagem         VARCHAR(255) NOT NULL,
                 _descricao              VARCHAR(255) NOT NULL,
                 _tipo                   VARCHAR(255) NOT NULL,
@@ -29,54 +29,148 @@ class PersonagemCrud:
                 _destreza               INT NOT NULL,
                 _sabedoria              INT NOT NULL,
                 _iniciativa             INT NOT NULL,
-                _habilidades            TEXT NOT NULL,
                 _idJogador              INT,
                 CONSTRAINT FK_Jogadores FOREIGN KEY (_idJogador)
                 REFERENCES jogadores(_idJogador)
             );
         """
-        self._conexao.execute(sql)
+
+        sql2 = """
+            CREATE TABLE IF NOT EXISTS habilidades (
+                _idHabilidade           INTEGER PRIMARY KEY AUTOINCREMENT,
+                _nomeHabilidade         VARCHAR(255) NOT NULL
+            );
+        """
+
+        sql3 = """
+            CREATE TABLE IF NOT EXISTS personagensHabilidades (
+                _idPersonagem           INT NOT NULL,
+                _idHabilidade           INT NOT NULL,
+                PRIMARY KEY (_idPersonagem, _idHabilidade),
+                CONSTRAINT fk_ph_personagem
+                    FOREIGN KEY (_idPersonagem)
+                    REFERENCES personagens(_idPersonagem)
+                    ON DELETE CASCADE
+                    ON UPDATE CASCADE,
+                CONSTRAINT fk_ph_habilidade
+                    FOREIGN KEY (_idHabilidade)
+                    REFERENCES habilidades(_idHabilidade)
+                    ON DELETE CASCADE
+                    ON UPDATE CASCADE
+            );
+        """
+        self._conexao.execute(sql1)
+        self._conexao.execute(sql2)
+        self._conexao.execute(sql3)
+
+        self._conexao.execute("PRAGMA foreign_keys = ON;") #Ativa FKs no sqlite
+
         self._conexao.commit()
 
     def bd_criar_personagem(self, personagem: Personagem) -> None:
-        sql = """ INSERT INTO jogadores (_nomePersonagem, _descricao, _tipo, _raca, _classe, _forca,
-                                         _inteligencia, _vigor, _destreza, _sabedoria, _iniciativa,
-                                         _habilidades, _idJogador)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        sql = """
+        INSERT INTO personagens (_nomePersonagem, _descricao, _tipo, _raca, _classe, _forca,
+            _inteligencia, _vigor, _destreza, _sabedoria, _iniciativa,
+            _idJogador)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
         cursor = self._conexao.execute(sql, (personagem._nomePersonagem, personagem._descricao,
                                        personagem._tipo, personagem._raca, personagem._classe,
                                        personagem._forca, personagem._inteligencia, personagem._vigor,
                                        personagem._destreza, personagem._sabedoria, personagem._iniciatica,
-                                       personagem._habilidades, personagem._idJogador))
-        ##### ARRUMAR LISTA HABILIDADES, TABELA???
+                                       personagem._idJogador))
         self._conexao.commit()
+
+        for nome_hab in (personagem.getHabilidades() or []):
+            self.vincular_habilidade(personagem.getIdPersonagem(), nome_hab)
+        
         personagem._idPersonagem = cursor.lastrowid
 
+    def bd_criar_habilidade(self, _nomeHabilidade: str) -> int:
+        sql = """
+        INSERT OR IGNORE INTO habilidades (_nomeHabilidade) VALUES (?);
+        """
+
+        self._conexao.execute(sql, (_nomeHabilidade,))
+        self._conexao.commit()
+
+    def bd_vincular_habilidade(self, _idPersonagem: int, _nomeHabilidade: str) -> None:
+        _idHabilidade = self.bd_criar_habilidade(_nomeHabilidade,)
+        sql = """
+            INSERT OR IGNORE INTO personagensHabilidades (_idPersonagem, _idHabilidade)
+            VALUES (?, ?)     
+        """
+        self._conexao.execute(sql, (_idPersonagem, _idHabilidade,))
+        self._conexao.commit()
+
+    def bd_alterar_habilidade(self, _idPersonagem, hab_antiga, hab_nova) -> None:
+        linha = self._conexao.execute(
+            "SELECT _idHabilidade FROM habilidades WHERE _nomeHabilidade = ?",
+            (hab_antiga,)
+            ).fetchone()
+
+        idAntigo = linha[0]
+        self._conexao.execute(
+            """DELETE FROM personagensHabilidades WHERE _idPersonagem =?" \
+            AND _idHabilidade = ?
+            """, (_idPersonagem, idAntigo),
+            )
+
+        idNovo = self.bd_criar_habilidade(hab_nova)
+        self._conexao.execute("""
+            INSERT OR IGNORE INTO personagensHabilidades (_idPersonagem, _idHabilidade)
+            VALUES (?, ?)
+        """, (_idPersonagem, idNovo),
+        )
+        self._conexao.commit()
+
+    def bd_deletar_habilidade(self, _idPersonagem, nomeHab) -> None:
+        self._conexao.execute("""
+            DELETE FROM personagensHabilidades
+            WHERE _idPersonagem = ?
+            AND _idHabilidade = (SELECT _idHabilidade
+                                 FROM habilidades
+                                 WHERE _nomeHabilidade = ?)
+
+        """, (_idPersonagem, nomeHab),
+        )
+
+        self._conexao.commit()
+
+    def bd_listar_habilidades_personagem(self, _idPersonagem) -> list[str]:
+        sql = """
+            SELECT habilidades._nomeHabilidade
+            FROM habilidades
+            JOIN personagensHabilidades ON personagensHabilidades._idHabilidade = habilidades._idHabilidade
+            WHERE personagensHabilidades._idPersonagem = ?
+            ORDER BY habilidades._nomeHabilidade
+        """
+        return [habs[0] for habs in self._conexao.execute(sql, (_idPersonagem,)).fetchall()]
+
     def bd_editar_personagem(self, _idPersonagem: int, personagem: Personagem) -> None:
-        sql = """UPDATE personagens SET _nomePersonagem = ?,
-                                    SET _descricao = ?,
-                                    SET _tipo = ?,
-                                    SET _raca = ?,
-                                    SET _classe = ?,
-                                    SET _forca = ?,
-                                    SET _inteligencia = ?,
-                                    SET _vigor = ?,
-                                    SET _destreza = ?,
-                                    SET _sabedoria = ?,
-                                    SET _iniciativa = ?,
-                                    SET _habilidades = ?,
-        WHERE _idPersonagem = ?"""
-        cursor = self._conexao.execute(sql, (personagem._nomePersonagem, personagem._descricao,
-                                       personagem._tipo, personagem._raca, personagem._classe,
-                                       personagem._forca, personagem._inteligencia, personagem._vigor,
-                                       personagem._destreza, personagem._sabedoria, personagem._iniciatica,
-                                       personagem._habilidades, personagem._idJogador))
-        ##### ARRUMAR LISTA HABILIDADES, TABELA???
+        sql = """
+        UPDATE personagens SET _nomePersonagem = ?,
+                               _descricao = ?,
+                               _tipo = ?,
+                               _raca = ?,
+                               _classe = ?,
+                               _forca = ?,
+                               _inteligencia = ?,
+                               _vigor = ?,
+                               _destreza = ?,
+                               _sabedoria = ?,
+                               _iniciativa = ?,
+            WHERE _idPersonagem = ?"""
+        self._conexao.execute(sql, (personagem.getNomePersonagem, personagem.getDescricao,
+                                       personagem.getTipo, personagem.getRaca, personagem.getClasse,
+                                       personagem.getForca, personagem.getInteligencia, personagem.getVigor,
+                                       personagem.getDestreza, personagem.getSabedoria, personagem.getIniciativa,
+                                       personagem.getIdJogador, _idPersonagem))
         self._conexao.commit()
 
     def bd_excluir_personagem(self, _idPersonagem: int) -> None:
         sql = "DELETE FROM personagens WHERE _idPersonagem = ?"
-        cursor = self._conexao.execute(sql, (_idPersonagem))
+        cursor = self._conexao.execute(sql, (_idPersonagem,))
         self._conexao.commit()
 
     def bd_listar_personagens(self) -> list[Personagem]:
@@ -94,7 +188,7 @@ class PersonagemCrud:
         sql = """SELECT _idPersonagem, _nomePersonagem, _descricao, _tipo, _raca, _classe, _forca,
                                        _inteligencia, _vigor, _destreza, _sabedoria, _iniciativa,
                                        _habilidades
-                 FROM jogos WHERE _idJogador = ?"""
+                 FROM personagens WHERE _idPersonagem = ?"""
         cursor = self._conexao.execute(sql, (personagem._nomePersonagem, personagem._descricao,
                                        personagem._tipo, personagem._raca, personagem._classe,
                                        personagem._forca, personagem._inteligencia, personagem._vigor,

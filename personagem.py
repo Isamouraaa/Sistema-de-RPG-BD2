@@ -1,22 +1,23 @@
 class Personagem:
-    def __init__(self,idPersonagem,nomePersonagem,descricao,tipo,raca,
-                 classe,forca,inteligencia,vigor,destreza,sabedoria,
-                 iniciativa,habilidades,idJogador):
-        self._idPersonagem = idPersonagem
-        self._nomePersonagem = nomePersonagem
-        self._descricao = descricao
-        self._tipo = tipo
-        self._raca = raca
-        self._classe = classe
-        self._forca = forca
-        self._inteligencia = inteligencia
-        self._vigor = vigor
-        self._destreza = destreza
-        self._sabedoria = sabedoria
-        self._iniciatica = iniciativa
-        self._habilidades = habilidades
-        self._idJogador = idJogador
+    def __init__(self,_idPersonagem,_nomePersonagem,_descricao,_tipo,_raca,
+                 _classe,_forca,_inteligencia,_vigor,_destreza,_sabedoria,
+                 _iniciativa,_habilidades,_idJogador):
+        self._idPersonagem = _idPersonagem
+        self._nomePersonagem = _nomePersonagem
+        self._descricao = _descricao
+        self._tipo = _tipo
+        self._raca = _raca
+        self._classe = _classe
+        self._forca = _forca
+        self._inteligencia = _inteligencia
+        self._vigor = _vigor
+        self._destreza = _destreza
+        self._sabedoria = _sabedoria
+        self._iniciatica = _iniciativa
+        self._habilidades = _habilidades if _habilidades is not None else []
+        self._idJogador = _idJogador
 
+    #getters
     def getIdPersonagem(self):
         return self._idPersonagem
 
@@ -25,6 +26,9 @@ class Personagem:
 
     def getDescricao(self):
         return self._descricao
+
+    def getTipo(self):
+        return self._tipo
 
     def getRaca(self):
         return self._raca
@@ -51,13 +55,12 @@ class Personagem:
         return self._iniciatica
 
     def getHabilidades(self):
-        return self._habilidades
+        return list(self._habilidades)
     
     def getIdJogador(self):
         return self._idJogador
 
-
-
+    #setters
     def setIdPersonagem(self,id):
         self._idPersonagem = id
 
@@ -91,8 +94,8 @@ class Personagem:
     def setIniciativa(self, novaInic):
         self._iniciatica = novaInic
 
-    def setHabilidades(self, novaHab):
-        self._habilidades.append(novaHab)
+    def setHabilidades(self, novasHab):
+        self._habilidades = list(novasHab)
     
     def setIdJogador(self, idJoga):
         self._idJogador = idJoga

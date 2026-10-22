@@ -42,7 +42,7 @@ class JogadorCrud:
             for row in cursor.fetchall()
         ]
 
-    def bd_listar_jogador(self, _idJogador: int) -> Jogador | None:
+    def bd_obter_jogador(self, _idJogador: int) -> Jogador | None:
         sql = "SELECT _idJogador, _nomeJogador, FROM jogos WHERE _idJogador = ?"
         cursor = self._conexao.execute(sql, (_idJogador))
         row = cursor.fetchone()
