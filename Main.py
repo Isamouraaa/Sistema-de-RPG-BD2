@@ -39,6 +39,26 @@ class Main:
             sys.exit(0)
         return valor
 
+    def pedirTipoPersonagem(self, atual=None):
+        print("\n" + "-" * 50)
+        print("  DEFINIÇÃO DO TIPO DE PERSONAGEM")
+        print("  O tipo define a função do personagem no RPG:")
+        print("  - Herói   : Personagem jogável / protagonista da aventura")
+        print("  - NPC     : Personagem não-jogável (aliado, habitante, mentor)")
+        print("  - Criatura: Monstro, fera ou antagonista de combate")
+        print("-" * 50)
+        print("  [1] Herói")
+        print("  [2] NPC")
+        print("  [3] Criatura")
+        if atual:
+            print(f"  [Enter] Manter atual ({atual})")
+        print("-" * 50)
+        opcao = self.pedirEntrada("Escolha a opção (1, 2, 3) ou digite o tipo: ")
+        if not opcao and atual:
+            return atual
+        mapa = {"1": "Herói", "2": "NPC", "3": "Criatura"}
+        return mapa.get(opcao, opcao if opcao else "Herói")
+
     def perguntarMestreInicio(self):
         self.limparTela()
         print("-" * 50)
@@ -258,7 +278,7 @@ class Main:
                 raca = self.pedirEntrada("Raça: ")
                 classe = self.pedirEntrada("Classe: ")
                 descricao = self.pedirEntrada("Descrição: ")
-                tipo = self.pedirEntrada("Tipo (ex: jogável, NPC, criatura): ")
+                tipo = self.pedirTipoPersonagem()
                 idJogadorStr = self.pedirEntrada("ID do Jogador (dono, Enter para pular): ")
                 idJogador = int(idJogadorStr) if idJogadorStr.isdigit() else None
 
@@ -435,9 +455,9 @@ class Main:
                     print("\nDescrição atualizada com sucesso!")
                     self.pedirEntrada("Pressione Enter para continuar...")
             elif campo == "3":
-                novo = self.pedirEntrada(f"Novo tipo [{personagem.getTipo()}]: ")
-                if novo:
-                    personagem.setTipo(novo)
+                novoTipo = self.pedirTipoPersonagem(atual=personagem.getTipo())
+                if novoTipo:
+                    personagem.setTipo(novoTipo)
                     self.controladora.editarPersonagem(idP, personagem)
                     print("\nTipo atualizado com sucesso!")
                     self.pedirEntrada("Pressione Enter para continuar...")
@@ -667,6 +687,75 @@ class Main:
             elif subOpcao == "0":
                 break
 
+    def exibirPersonagensBiblioteca(self, tipo=None, titulo="PERSONAGENS"):
+        self.limparTela()
+        if tipo:
+            personagens = self.controladora.listarPersonagensPorTipo(tipo)
+        else:
+            personagens = self.controladora.listarTodosPersonagens()
+        print("-" * 50)
+        print(f"  {titulo}")
+        print("-" * 50)
+        if not personagens:
+            print("  Nenhum personagem encontrado nesta categoria.")
+            print("-" * 50)
+            self.pedirEntrada("\nPressione Enter para continuar...")
+            return
+        for p in personagens:
+            tipo_label = f"[{p.getTipo()}]" if p.getTipo() else ""
+            print(f"  ID: {p.getIdPersonagem():<4} | Nome: {p.getNomePersonagem():<15} | Classe: {p.getClasse():<10} {tipo_label}")
+        print("-" * 50)
+        idEscolhido = self.pedirEntrada("\nDigite o ID do personagem para ver detalhes (Enter para voltar): ")
+        if idEscolhido.isdigit():
+            pEncontrado = self.controladora.obterPersonagem(int(idEscolhido))
+            if pEncontrado:
+                self.limparTela()
+                print("-" * 50)
+                print("  DETALHES DO PERSONAGEM")
+                print("-" * 50)
+                print(f"  ID: {pEncontrado.getIdPersonagem()}")
+                print(f"  Nome: {pEncontrado.getNomePersonagem()}")
+                print(f"  Descrição: {pEncontrado.getDescricao() or '-'}")
+                print(f"  Tipo: {pEncontrado.getTipo() or '-'}")
+                print(f"  Raça: {pEncontrado.getRaca() or '-'}")
+                print(f"  Classe: {pEncontrado.getClasse() or '-'}")
+                print(f"  Atributos: FOR {pEncontrado.getForca()} | INT {pEncontrado.getInteligencia()} | VIG {pEncontrado.getVigor()} | DES {pEncontrado.getDestreza()} | SAB {pEncontrado.getSabedoria()}")
+                print(f"  Iniciativa: {pEncontrado.getIniciativa()}")
+                print(f"  ID Jogador Dono: {pEncontrado.getIdJogador() or '-'}")
+                habs = pEncontrado.getHabilidades()
+                print(f"  Habilidades: {', '.join(habs) if habs else 'Nenhuma'}")
+                print("-" * 50)
+            else:
+                print("\nPersonagem não encontrado.")
+            self.pedirEntrada("\nPressione Enter para continuar...")
+
+    def submenuBibliotecaPersonagens(self):
+        while True:
+            self.limparTela()
+            print("-" * 50)
+            print("  BIBLIOTECA - PERSONAGENS POR TIPO")
+            print("-" * 50)
+            print("  [1] Personagens (Heróis)")
+            print("  [2] NPCs")
+            print("  [3] Criaturas")
+            print("  [4] Todos os Personagens")
+            print("  [0] Voltar")
+            print("-" * 50)
+            op = self.pedirEntrada("Escolha uma opção: ")
+            if op == "1":
+                self.exibirPersonagensBiblioteca("Herói", "PERSONAGENS (HERÓIS)")
+            elif op == "2":
+                self.exibirPersonagensBiblioteca("NPC", "NPCS")
+            elif op == "3":
+                self.exibirPersonagensBiblioteca("Criatura", "CRIATURAS")
+            elif op == "4":
+                self.exibirPersonagensBiblioteca(None, "TODOS OS PERSONAGENS")
+            elif op == "0":
+                break
+            else:
+                print("Opção inválida!")
+                self.pedirEntrada("\nPressione Enter para continuar...")
+
     def menuBiblioteca(self):
         while True:
             self.limparTela()
@@ -683,6 +772,9 @@ class Main:
             print("  [6] Estatísticas dos Jogos")
             print("  [7] Estatísticas de Personagens e Habilidades")
             print("  [8] Estatísticas de Habilidades por Classe")
+            print("  [9] Comparativo por Tipo de Personagem (Herói, NPC, Criatura)")
+            print("  [10] Consulta por Tipo e Característica (com especificação)")
+            print("  [11] Censo de Tipos de Personagem por Jogo")
             print("  [0] Voltar")
             print("-" * 50)
 
@@ -721,42 +813,7 @@ class Main:
                         self.pedirEntrada("\nPressione Enter para continuar...")
 
             elif subOpcao == "2":
-                self.limparTela()
-                personagens = self.controladora.listarTodosPersonagens()
-                print("-" * 50)
-                print("  PERSONAGENS")
-                print("-" * 50)
-                if not personagens:
-                    print("  Nenhum personagem encontrado.")
-                    print("-" * 50)
-                    self.pedirEntrada("\nPressione Enter para continuar...")
-                else:
-                    for p in personagens:
-                        print(f"  ID: {p.getIdPersonagem():<4} | Nome: {p.getNomePersonagem():<15} | Classe: {p.getClasse()}")
-                    print("-" * 50)
-                    idEscolhido = self.pedirEntrada("\nDigite o ID do personagem para ver detalhes (Enter para voltar): ")
-                    if idEscolhido.isdigit():
-                        pEncontrado = self.controladora.obterPersonagem(int(idEscolhido))
-                        if pEncontrado:
-                            self.limparTela()
-                            print("-" * 50)
-                            print("  DETALHES DO PERSONAGEM")
-                            print("-" * 50)
-                            print(f"  ID: {pEncontrado.getIdPersonagem()}")
-                            print(f"  Nome: {pEncontrado.getNomePersonagem()}")
-                            print(f"  Descrição: {pEncontrado.getDescricao() or '-'}")
-                            print(f"  Tipo: {pEncontrado.getTipo() or '-'}")
-                            print(f"  Raça: {pEncontrado.getRaca() or '-'}")
-                            print(f"  Classe: {pEncontrado.getClasse() or '-'}")
-                            print(f"  Atributos: FOR {pEncontrado.getForca()} | INT {pEncontrado.getInteligencia()} | VIG {pEncontrado.getVigor()} | DES {pEncontrado.getDestreza()} | SAB {pEncontrado.getSabedoria()}")
-                            print(f"  Iniciativa: {pEncontrado.getIniciativa()}")
-                            print(f"  ID Jogador Dono: {pEncontrado.getIdJogador() or '-'}")
-                            habs = pEncontrado.getHabilidades()
-                            print(f"  Habilidades: {', '.join(habs) if habs else 'Nenhuma'}")
-                            print("-" * 50)
-                        else:
-                            print("\nPersonagem não encontrado.")
-                        self.pedirEntrada("\nPressione Enter para continuar...")
+                self.submenuBibliotecaPersonagens()
 
             elif subOpcao == "3":
                 self.limparTela()
@@ -879,12 +936,12 @@ class Main:
                 if not stats:
                     print("  Nenhum jogo encontrado.")
                 for s in stats:
-                    print(f"  [{s.id_jogo}] {s.nome_jogo}")
-                    print(f"      Mestre          : {s.nome_mestre or 'Sem mestre'}")
-                    print(f"      Jogadores       : {s.total_jogadores}")
-                    print(f"      Personagens     : {s.total_personagens}")
-                    print(f"      Classe + comum  : {s.classe_mais_comum or '-'}")
-                    print(f"      Força média     : {s.forca_media}")
+                    print(f"  [{s['id_jogo']}] {s['nome_jogo']}")
+                    print(f"      Mestre          : {s['nome_mestre'] or 'Sem mestre'}")
+                    print(f"      Jogadores       : {s['total_jogadores']}")
+                    print(f"      Personagens     : {s['total_personagens']}")
+                    print(f"      Classe + comum  : {s['classe_mais_comum'] or '-'}")
+                    print(f"      Força média     : {s['forca_media']}")
                     print("-" * 70)
                 self.pedirEntrada("\nPressione Enter para continuar...")
 
@@ -897,10 +954,10 @@ class Main:
                 if not stats:
                     print("  Nenhum personagem encontrado.")
                 for s in stats:
-                    print(f"  [{s.id_personagem}] {s.nome_personagem} ({s.classe}) | Jogador: {s.nome_jogador}")
-                    print(f"      Habilidades     : {s.lista_habilidades}")
-                    print(f"      Qtd Habilidades : {s.total_habilidades} | Soma Pontos: {s.soma_pontos_habilidades} | Média: {s.media_pontos_habilidade}")
-                    print(f"      Poder Total     : {s.poder_total}")
+                    print(f"  [{s['id_personagem']}] {s['nome_personagem']} ({s['classe']}) | Jogador: {s['nome_jogador']}")
+                    print(f"      Habilidades     : {s['lista_habilidades']}")
+                    print(f"      Qtd Habilidades : {s['total_habilidades']} | Soma Pontos: {s['soma_pontos_habilidades']} | Média: {s['media_pontos_habilidade']}")
+                    print(f"      Poder Total     : {s['poder_total']}")
                     print("-" * 75)
                 self.pedirEntrada("\nPressione Enter para continuar...")
 
@@ -913,12 +970,62 @@ class Main:
                 if not stats:
                     print("  Nenhuma habilidade encontrada.")
                 for s in stats:
-                    print(f"  [{s.id_habilidade}] {s.nome_habilidade} (Pontos: {s.pontos_habilidade})")
-                    if s.efeito:
-                        print(f"      Efeito          : {s.efeito}")
-                    print(f"      Total Usuários  : {s.total_personagens}")
-                    print(f"      Classe Preferida: {s.classe_mais_comum or 'Nenhuma'}")
-                    print(f"      Força Média     : {s.forca_media} | INT Média: {s.inteligencia_media}")
+                    print(f"  [{s['id_habilidade']}] {s['nome_habilidade']} (Pontos: {s['pontos_habilidade']})")
+                    if s['efeito']:
+                        print(f"      Efeito          : {s['efeito']}")
+                    print(f"      Total Usuários  : {s['total_personagens']}")
+                    print(f"      Classe Preferida: {s['classe_mais_comum'] or 'Nenhuma'}")
+                    print(f"      Força Média     : {s['forca_media']} | INT Média: {s['inteligencia_media']}")
+                    print("-" * 75)
+                self.pedirEntrada("\nPressione Enter para continuar...")
+
+            elif subOpcao == "9":
+                self.limparTela()
+                stats = self.controladora.estatisticasPorTipo()
+                print("-" * 75)
+                print("  COMPARATIVO POR TIPO DE PERSONAGEM (HERÓI, NPC, CRIATURA)")
+                print("-" * 75)
+                if not stats:
+                    print("  Nenhum personagem encontrado.")
+                for s in stats:
+                    print(f"  Tipo: {s['tipo']:<12} | Total: {s['total_personagens']} personagem(ns)")
+                    print(f"      Médias Atributos: FOR {s['forca_media']} | VIG {s['vigor_medio']} | INT {s['inteligencia_media']} | INIC {s['iniciativa_media']}")
+                    print("-" * 75)
+                self.pedirEntrada("\nPressione Enter para continuar...")
+
+            elif subOpcao == "10":
+                self.limparTela()
+                print("-" * 75)
+                print("  CONSULTA: TIPO DE PERSONAGEM + CARACTERÍSTICA ESPECIFICADA")
+                print("-" * 75)
+                tipoFiltro = self.pedirEntrada("Filtrar por Tipo (Herói / NPC / Criatura ou Enter para qualquer): ").strip()
+                classeFiltro = self.pedirEntrada("Filtrar por Classe (ex: Guerreiro, Mago ou Enter para qualquer): ").strip()
+                forcaStr = self.pedirEntrada("Força mínima (ou Enter para 0): ").strip()
+                forcaMinima = int(forcaStr) if forcaStr.isdigit() else 0
+
+                resultados = self.controladora.consultarTipoECaracteristica(tipoFiltro, classeFiltro, forcaMinima)
+                print("-" * 75)
+                if not resultados:
+                    print("  Nenhum personagem atendeu aos critérios especificados.")
+                for p in resultados:
+                    print(f"  [{p['id_personagem']}] {p['nome_personagem']} | Tipo: {p['tipo']} | Classe: {p['classe']} | Raça: {p['raca']}")
+                    print(f"      Jogador   : {p['nome_jogador']}")
+                    print(f"      Atributos : FOR {p['forca']} | INT {p['inteligencia']} | VIG {p['vigor']} | INIC {p['iniciativa']}")
+                    print(f"      Habilidades ({p['total_habilidades']}): {p['lista_habilidades']}")
+                    print("-" * 75)
+                self.pedirEntrada("\nPressione Enter para continuar...")
+
+            elif subOpcao == "11":
+                self.limparTela()
+                stats = self.controladora.estatisticasTiposPorJogo()
+                print("-" * 75)
+                print("  CENSO DE PERSONAGENS POR JOGO")
+                print("-" * 75)
+                if not stats:
+                    print("  Nenhum jogo encontrado.")
+                for s in stats:
+                    print(f"  [{s['id_jogo']}] {s['nome_jogo']} (Mestre: {s['nome_mestre']})")
+                    print(f"      Total de Personagens: {s['total_geral_personagens']}")
                     print("-" * 75)
                 self.pedirEntrada("\nPressione Enter para continuar...")
 

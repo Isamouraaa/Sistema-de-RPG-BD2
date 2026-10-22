@@ -1,29 +1,13 @@
 class Mestre:
     def __init__(self, id_mestre: int | None = None, nome: str = "") -> None:
-        self._id_mestre = id_mestre
-        self._nome = nome
-
-    @property
-    def id_mestre(self) -> int | None:
-        return self._id_mestre
-
-    @id_mestre.setter
-    def id_mestre(self, valor: int | None) -> None:
-        self._id_mestre = valor
-
-    @property
-    def nome(self) -> str:
-        return self._nome
-
-    @nome.setter
-    def nome(self, valor: str) -> None:
-        self._nome = valor
+        self.id_mestre = id_mestre
+        self.nome = nome
 
     def getId(self) -> int | None:
-        return self._id_mestre
+        return self.id_mestre
 
     def getNome(self) -> str:
-        return self._nome
+        return self.nome
 
     def __repr__(self) -> str:
-        return f"Mestre(id={self._id_mestre!r}, nome={self._nome!r})"
+        return f"Mestre(id={self.id_mestre!r}, nome={self.nome!r})"

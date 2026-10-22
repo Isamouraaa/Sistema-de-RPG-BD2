@@ -47,9 +47,9 @@ class CrudMestre:
         return self._serializador.linha_para_mestre(row)
 
     def bd_listar_jogos_do_mestre(self, id_mestre: int) -> list[tuple[int, str, str]]:
-        sql = "SELECT IDjogo, nome, COALESCE(descricao, '') FROM JOGO WHERE IDmestre = ? ORDER BY IDjogo"
+        sql = "SELECT IDjogo, nome, descricao FROM JOGO WHERE IDmestre = ? ORDER BY IDjogo"
         cursor = self._conexao.execute(sql, (id_mestre,))
-        return cursor.fetchall()
+        return [(r[0], r[1], r[2] or "") for r in cursor.fetchall()]
 
     def serializar(self) -> str:
         return self._serializador.serializar_infos_mestres(self.bd_listar_mestres())

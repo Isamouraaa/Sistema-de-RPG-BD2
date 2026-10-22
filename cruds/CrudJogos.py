@@ -1,19 +1,6 @@
 import sqlite3
-from dataclasses import dataclass
 from entidades.Jogo import Jogo
 from serializadores.SerializadorJogo import SerializadorJogo
-
-
-@dataclass
-class EstatisticaJogo:
-    id_jogo: int
-    nome_jogo: str
-    descricao: str
-    nome_mestre: str | None
-    total_jogadores: int
-    total_personagens: int
-    classe_mais_comum: str | None
-    forca_media: float
 
 
 class CrudJogos:
@@ -61,15 +48,15 @@ class CrudJogos:
     def desserializar(self, dados: str) -> list[Jogo]:
         return self._serializador.desserializar_infos_jogos(dados)
 
-    def bd_estatisticas_jogos(self, min_personagens: int = 0) -> list[EstatisticaJogo]:
+    def bd_estatisticas_jogos(self, min_personagens: int = 0) -> list[dict]:
         sql = """
             SELECT
                 j.IDjogo,
                 j.nome                                              AS nome_jogo,
-                COALESCE(j.descricao, '')                          AS descricao,
+                j.descricao                                         AS descricao,
                 m.nome                                              AS nome_mestre,
-                COUNT(DISTINCT jj.IDJogador)                       AS total_jogadores,
-                COUNT(DISTINCT p.IDPersonagem)                      AS total_personagens,
+                COUNT(jj.IDJogador)                                 AS total_jogadores,
+                COUNT(p.IDPersonagem)                               AS total_personagens,
                 (
                     SELECT p2.classe
                     FROM   PERSONAGEM p2
@@ -81,26 +68,26 @@ class CrudJogos:
                     ORDER BY COUNT(*) DESC
                     LIMIT 1
                 )                                                   AS classe_mais_comum,
-                COALESCE(AVG(p.forca), 0.0)                        AS forca_media
+                AVG(p.forca)                                        AS forca_media
             FROM  JOGO j
             LEFT JOIN MESTRE        m   ON m.IDmestre    = j.IDmestre
             LEFT JOIN JOGOSJOGADOR  jj  ON jj.IDjogo     = j.IDjogo
             LEFT JOIN PERSONAGEM    p   ON p.IDJogador   = jj.IDJogador
             GROUP BY j.IDjogo, j.nome, j.descricao, m.nome
-            HAVING COUNT(DISTINCT p.IDPersonagem) >= ?
+            HAVING COUNT(p.IDPersonagem) >= ?
             ORDER BY total_personagens DESC, j.nome ASC
         """
         cursor = self._conexao.execute(sql, (min_personagens,))
         return [
-            EstatisticaJogo(
-                id_jogo=row[0],
-                nome_jogo=row[1],
-                descricao=row[2],
-                nome_mestre=row[3],
-                total_jogadores=row[4],
-                total_personagens=row[5],
-                classe_mais_comum=row[6],
-                forca_media=round(row[7], 2),
-            )
+            {
+                "id_jogo": row[0],
+                "nome_jogo": row[1],
+                "descricao": row[2] or "",
+                "nome_mestre": row[3] or "Sem mestre",
+                "total_jogadores": row[4] or 0,
+                "total_personagens": row[5] or 0,
+                "classe_mais_comum": row[6] or "-",
+                "forca_media": round(row[7], 2) if row[7] is not None else 0.0,
+            }
             for row in cursor.fetchall()
         ]

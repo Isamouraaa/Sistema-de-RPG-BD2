@@ -1,32 +1,6 @@
 import sqlite3
-from dataclasses import dataclass
 from entidades.Personagem import Personagem
 from serializadores.SerializadorPersonagem import PersonagemSerializadora
-
-
-@dataclass
-class EstatisticaPersonagemHabilidade:
-    id_personagem: int
-    nome_personagem: str
-    classe: str
-    nome_jogador: str
-    total_habilidades: int
-    soma_pontos_habilidades: int
-    media_pontos_habilidade: float
-    lista_habilidades: str
-    poder_total: int
-
-
-@dataclass
-class EstatisticaHabilidadeClasse:
-    id_habilidade: int
-    nome_habilidade: str
-    pontos_habilidade: int
-    efeito: str
-    total_personagens: int
-    classe_mais_comum: str | None
-    forca_media: float
-    inteligencia_media: float
 
 
 class CrudPersonagem:
@@ -258,62 +232,66 @@ class CrudPersonagem:
         cursor = self._conexao.execute(sql, (id_jogo,))
         return [self._linha_para_personagem(row) for row in cursor.fetchall()]
 
-    def bd_estatisticas_personagens_habilidades(self) -> list[EstatisticaPersonagemHabilidade]:
+    def bd_listar_personagens_por_tipo(self, tipo: str) -> list[Personagem]:
+        sql = """
+            SELECT p.IDPersonagem, p.IDJogador, p.nomePersonagem, p.descricao, p.tipo,
+                   p.raca, p.classe, p.forca, p.inteligencia, p.vigor, p.destreza,
+                   p.sabedoria, p.iniciativa
+            FROM PERSONAGEM p
+            WHERE LOWER(p.tipo) LIKE LOWER(?)
+            ORDER BY p.IDPersonagem
+        """
+        cursor = self._conexao.execute(sql, (f"%{tipo}%",))
+        return [self._linha_para_personagem(row) for row in cursor.fetchall()]
+
+    def bd_estatisticas_personagens_habilidades(self) -> list[dict]:
         sql = """
             SELECT
                 p.IDPersonagem,
                 p.nomePersonagem,
                 p.classe,
-                COALESCE(j.nomejogador, 'Sem jogador') AS nome_jogador,
-                COUNT(h.IDhabilidade)                  AS total_habilidades,
-                COALESCE(SUM(h.Pontos), 0)             AS soma_pontos_habilidades,
-                ROUND(COALESCE(AVG(h.Pontos), 0.0), 2) AS media_pontos_habilidade,
-                COALESCE(GROUP_CONCAT(h.nomeHabilidade, ', '), 'Nenhuma') AS lista_habilidades,
-                ((p.forca + p.inteligencia + p.vigor) + COALESCE(SUM(h.Pontos), 0) * 2) AS poder_total
+                j.nomejogador AS nome_jogador,
+                COUNT(h.IDhabilidade) AS total_habilidades,
+                SUM(h.Pontos) AS soma_pontos_habilidades,
+                AVG(h.Pontos) AS media_pontos_habilidade,
+                GROUP_CONCAT(h.nomeHabilidade, ', ') AS lista_habilidades,
+                (p.forca + p.inteligencia + p.vigor) AS atributos_base
             FROM PERSONAGEM p
             LEFT JOIN JOGADOR j ON j.IDJogador = p.IDJogador
             LEFT JOIN personagensHabilidades ph ON ph._idPersonagem = p.IDPersonagem
             LEFT JOIN HABILIDADE h ON h.IDhabilidade = ph._idHabilidade
             GROUP BY p.IDPersonagem, p.nomePersonagem, p.classe, j.nomejogador, p.forca, p.inteligencia, p.vigor
-            ORDER BY poder_total DESC, p.nomePersonagem ASC
+            ORDER BY atributos_base DESC, p.nomePersonagem ASC
         """
         cursor = self._conexao.execute(sql)
-        return [
-            EstatisticaPersonagemHabilidade(
-                id_personagem=row[0],
-                nome_personagem=row[1],
-                classe=row[2],
-                nome_jogador=row[3],
-                total_habilidades=row[4],
-                soma_pontos_habilidades=row[5],
-                media_pontos_habilidade=float(row[6]),
-                lista_habilidades=row[7],
-                poder_total=row[8],
-            )
-            for row in cursor.fetchall()
-        ]
+        resultado = []
+        for row in cursor.fetchall():
+            soma_pontos = row[5] or 0
+            media_pontos = round(row[6], 2) if row[6] is not None else 0.0
+            poder_total = (row[8] or 0) + (soma_pontos * 2)
+            resultado.append({
+                "id_personagem": row[0],
+                "nome_personagem": row[1],
+                "classe": row[2],
+                "nome_jogador": row[3] or "Sem jogador",
+                "total_habilidades": row[4] or 0,
+                "soma_pontos_habilidades": soma_pontos,
+                "media_pontos_habilidade": media_pontos,
+                "lista_habilidades": row[7] or "Nenhuma",
+                "poder_total": poder_total,
+            })
+        return resultado
 
-    def bd_estatisticas_habilidades_classes(self) -> list[EstatisticaHabilidadeClasse]:
+    def bd_estatisticas_habilidades_classes(self) -> list[dict]:
         sql = """
             SELECT
                 h.IDhabilidade,
                 h.nomeHabilidade,
-                COALESCE(h.Pontos, 0)                  AS pontos_habilidade,
-                COALESCE(h.efeitoHabilidade, '')       AS efeito,
-                COUNT(DISTINCT p.IDPersonagem)         AS total_personagens,
-                (
-                    SELECT p2.classe
-                    FROM PERSONAGEM p2
-                    INNER JOIN personagensHabilidades ph2 ON ph2._idPersonagem = p2.IDPersonagem
-                    WHERE ph2._idHabilidade = h.IDhabilidade
-                      AND p2.classe IS NOT NULL
-                      AND p2.classe != ''
-                    GROUP BY p2.classe
-                    ORDER BY COUNT(*) DESC
-                    LIMIT 1
-                )                                      AS classe_mais_comum,
-                ROUND(COALESCE(AVG(p.forca), 0.0), 2)        AS forca_media,
-                ROUND(COALESCE(AVG(p.inteligencia), 0.0), 2) AS inteligencia_media
+                h.Pontos AS pontos_habilidade,
+                h.efeitoHabilidade AS efeito,
+                COUNT(p.IDPersonagem) AS total_personagens,
+                AVG(p.forca) AS forca_media,
+                AVG(p.inteligencia) AS inteligencia_media
             FROM HABILIDADE h
             LEFT JOIN personagensHabilidades ph ON ph._idHabilidade = h.IDhabilidade
             LEFT JOIN PERSONAGEM p ON p.IDPersonagem = ph._idPersonagem
@@ -321,19 +299,113 @@ class CrudPersonagem:
             ORDER BY total_personagens DESC, h.nomeHabilidade ASC
         """
         cursor = self._conexao.execute(sql)
-        return [
-            EstatisticaHabilidadeClasse(
-                id_habilidade=row[0],
-                nome_habilidade=row[1],
-                pontos_habilidade=row[2],
-                efeito=row[3],
-                total_personagens=row[4],
-                classe_mais_comum=row[5],
-                forca_media=float(row[6]),
-                inteligencia_media=float(row[7]),
-            )
-            for row in cursor.fetchall()
-        ]
+        resultado = []
+        for row in cursor.fetchall():
+            resultado.append({
+                "id_habilidade": row[0],
+                "nome_habilidade": row[1],
+                "pontos_habilidade": row[2] or 0,
+                "efeito": row[3] or "",
+                "total_personagens": row[4] or 0,
+                "classe_mais_comum": "-",
+                "forca_media": round(row[5], 2) if row[5] is not None else 0.0,
+                "inteligencia_media": round(row[6], 2) if row[6] is not None else 0.0,
+            })
+        return resultado
+
+    def bd_estatisticas_por_tipo(self) -> list[dict]:
+        sql = """
+            SELECT
+                p.tipo,
+                COUNT(p.IDPersonagem) AS total_personagens,
+                AVG(p.forca)          AS forca_media,
+                AVG(p.vigor)          AS vigor_medio,
+                AVG(p.inteligencia)   AS inteligencia_media,
+                AVG(p.iniciativa)     AS iniciativa_media
+            FROM PERSONAGEM p
+            GROUP BY p.tipo
+            ORDER BY total_personagens DESC
+        """
+        cursor = self._conexao.execute(sql)
+        resultado = []
+        for row in cursor.fetchall():
+            resultado.append({
+                "tipo": row[0] or "Não Definido",
+                "total_personagens": row[1] or 0,
+                "forca_media": round(row[2], 1) if row[2] is not None else 0.0,
+                "vigor_medio": round(row[3], 1) if row[3] is not None else 0.0,
+                "inteligencia_media": round(row[4], 1) if row[4] is not None else 0.0,
+                "iniciativa_media": round(row[5], 1) if row[5] is not None else 0.0,
+            })
+        return resultado
+
+    def bd_estatisticas_tipos_por_jogo(self) -> list[dict]:
+        sql = """
+            SELECT
+                j.IDjogo,
+                j.nome AS nome_jogo,
+                m.nome AS nome_mestre,
+                COUNT(p.IDPersonagem) AS total_geral_personagens
+            FROM JOGO j
+            LEFT JOIN MESTRE m ON m.IDmestre = j.IDmestre
+            LEFT JOIN JOGOSJOGADOR jj ON jj.IDjogo = j.IDjogo
+            LEFT JOIN PERSONAGEM p ON p.IDJogador = jj.IDJogador
+            GROUP BY j.IDjogo, j.nome, m.nome
+            ORDER BY total_geral_personagens DESC, j.nome ASC
+        """
+        cursor = self._conexao.execute(sql)
+        resultado = []
+        for row in cursor.fetchall():
+            resultado.append({
+                "id_jogo": row[0],
+                "nome_jogo": row[1],
+                "nome_mestre": row[2] or "Sem mestre",
+                "total_geral_personagens": row[3] or 0,
+            })
+        return resultado
+
+    def bd_consultar_tipo_e_caracteristica(
+        self, tipo: str = "", classe: str = "", forca_minima: int = 0
+    ) -> list[dict]:
+        sql = """
+            SELECT
+                p.IDPersonagem,
+                p.nomePersonagem,
+                p.tipo,
+                p.classe,
+                p.raca,
+                p.forca,
+                p.inteligencia,
+                p.vigor,
+                p.iniciativa,
+                j.nomejogador
+            FROM PERSONAGEM p
+            LEFT JOIN JOGADOR j ON j.IDJogador = p.IDJogador
+            WHERE p.tipo LIKE ?
+              AND p.classe LIKE ?
+              AND p.forca >= ?
+            ORDER BY p.forca DESC, p.nomePersonagem ASC
+        """
+        cursor = self._conexao.execute(sql, (f"%{tipo}%", f"%{classe}%", forca_minima))
+        resultado = []
+        for row in cursor.fetchall():
+            id_p = row[0]
+            habs = self.bd_listar_habilidades_personagem(id_p)
+            resultado.append({
+                "id_personagem": id_p,
+                "nome_personagem": row[1],
+                "tipo": row[2] or "-",
+                "classe": row[3] or "-",
+                "raca": row[4] or "-",
+                "forca": row[5],
+                "inteligencia": row[6],
+                "vigor": row[7],
+                "iniciativa": row[8],
+                "nome_jogador": row[9] or "Sem jogador",
+                "total_habilidades": len(habs),
+                "lista_habilidades": ", ".join(habs) if habs else "Nenhuma",
+            })
+        return resultado
 
     def serializar(self) -> str:
         return self._serializador.serializar_infos_personagens(self.bd_listar_personagens())

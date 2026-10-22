@@ -39,11 +39,14 @@ class Combate:
                     print(f"Personagem '{nome}' não encontrado.")
                     input("Pressione Enter para continuar...")
             elif opcao == "0":
-                print("Combate encerrado.")
+                self.finalizarCombate()
                 break
             else:
                 print("Opção inválida.")
                 input("Pressione Enter para continuar...")
+
+    def finalizarCombate(self) -> None:
+        print("Combate encerrado.")
 
     def proximoTurno(self) -> None:
         if not self._iniciativas:
@@ -59,8 +62,7 @@ class Combate:
             self._controladora_personagem.editarPersonagem(personagem.getIdPersonagem(), personagem)
             self._iniciativas = self._ordenar_iniciativas([p for p, _ in self._iniciativas])
 
-    @staticmethod
-    def _ordenar_iniciativas(personagens: list[Personagem]) -> list[tuple[Personagem, int]]:
+    def _ordenar_iniciativas(self, personagens: list[Personagem]) -> list[tuple[Personagem, int]]:
         pares = [(p, p.getIniciativa()) for p in personagens]
         return sorted(pares, key=lambda x: x[1], reverse=True)
 

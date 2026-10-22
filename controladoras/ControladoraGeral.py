@@ -1,5 +1,5 @@
 import sqlite3
-from cruds.CrudJogos import CrudJogos, EstatisticaJogo
+from cruds.CrudJogos import CrudJogos
 from cruds.CrudMestre import CrudMestre
 from entidades.Jogo import Jogo
 from entidades.Mestre import Mestre
@@ -59,7 +59,7 @@ class ControladoraGeral:
     def ObterJogo(self, idJogo: int) -> Jogo | None:
         return self._crud_jogos.bd_listar_jogo(idJogo)
 
-    def EstatisticasJogos(self, min_personagens: int = 0) -> list[EstatisticaJogo]:
+    def EstatisticasJogos(self, min_personagens: int = 0) -> list[dict]:
         return self._crud_jogos.bd_estatisticas_jogos(min_personagens)
 
     def SerializarJogos(self) -> str:

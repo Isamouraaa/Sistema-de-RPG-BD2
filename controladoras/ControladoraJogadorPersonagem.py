@@ -82,11 +82,23 @@ class ControladoraJogadorPersonagem:
     def listarPersonagensPorJogo(self, idJogo: int) -> list[Personagem]:
         return self._crud_personagem.bd_listar_personagens_por_jogo(idJogo)
 
+    def listarPersonagensPorTipo(self, tipo: str) -> list[Personagem]:
+        return self._crud_personagem.bd_listar_personagens_por_tipo(tipo)
+
     def estatisticasPersonagensHabilidades(self):
         return self._crud_personagem.bd_estatisticas_personagens_habilidades()
 
     def estatisticasHabilidadesClasses(self):
         return self._crud_personagem.bd_estatisticas_habilidades_classes()
+
+    def estatisticasPorTipo(self):
+        return self._crud_personagem.bd_estatisticas_por_tipo()
+
+    def estatisticasTiposPorJogo(self):
+        return self._crud_personagem.bd_estatisticas_tipos_por_jogo()
+
+    def consultarTipoECaracteristica(self, tipo: str = "", classe: str = "", forca_minima: int = 0) -> list[dict]:
+        return self._crud_personagem.bd_consultar_tipo_e_caracteristica(tipo, classe, forca_minima)
 
     def serializarJogadores(self) -> str:
         return self._crud_jogador.serializar()
