@@ -30,6 +30,6 @@ class SerializadorJogador:
     @staticmethod
     def _jogador_para_dict(jogador: Jogador) -> dict:
         return {
-            "id_jogo": jogador._idJogador,
-            "_nomeJogador": jogador._nomeJogador,
+            "_idJogador": jogador.getIdJogador(),
+            "_nomeJogador": jogador.getNome(),
         }
