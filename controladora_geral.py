@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from crud_jogos import CrudJogos
+from crud_jogos import CrudJogos, EstatisticaJogo
 from crud_mestre import CrudMestre
 from jogo import Jogo
 from mestre import Mestre
@@ -41,3 +41,6 @@ class ControladoraGeral:
 
     def ObterJogo(self, idJogo: int) -> Jogo | None:
         return self._crud_jogos.bd_listar_jogo(idJogo)
+
+    def EstatisticasJogos(self, min_personagens: int = 0) -> list[EstatisticaJogo]:
+        return self._crud_jogos.bd_estatisticas_jogos(min_personagens)
