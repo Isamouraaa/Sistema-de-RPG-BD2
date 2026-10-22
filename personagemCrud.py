@@ -8,6 +8,7 @@ class PersonagemCrud:
     def __init__(self, conexao: sqlite3.Connection) -> None:
         self._conexao = conexao
         self._criar_tabelas()
+        self._conexao.execute("PRAGMA foreign_keys = ON;") #Ativa FKs no sqlite
 
         '''    def __init__(self,idPersonagem,nomePersonagem,descricao,tipo,raca,
                  classe,forca,inteligencia,vigor,destreza,sabedoria,
@@ -63,8 +64,6 @@ class PersonagemCrud:
         self._conexao.execute(sql2)
         self._conexao.execute(sql3)
 
-        self._conexao.execute("PRAGMA foreign_keys = ON;") #Ativa FKs no sqlite
-
         self._conexao.commit()
 
     def bd_criar_personagem(self, personagem: Personagem) -> None:
@@ -74,19 +73,19 @@ class PersonagemCrud:
             _idJogador)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
-        cursor = self._conexao.execute(sql, (personagem._nomePersonagem, personagem._descricao,
-                                       personagem._tipo, personagem._raca, personagem._classe,
-                                       personagem._forca, personagem._inteligencia, personagem._vigor,
-                                       personagem._destreza, personagem._sabedoria, personagem._iniciatica,
+        cursor = self._conexao.execute(sql, (personagem.getNomePersonagem(), personagem.getDescricao(),
+                                       personagem.getTipo(), personagem.getRaca(), personagem.getClasse(),
+                                       personagem.getForca(), personagem.getInteligencia(), personagem.getVigor(),
+                                       personagem.getDestreza(), personagem.getSabedoria(), personagem.getIniciativa,
                                        personagem._idJogador))
         self._conexao.commit()
+        personagem._idPersonagem = cursor.lastlinhaid
 
         for nome_hab in (personagem.getHabilidades() or []):
-            self.vincular_habilidade(personagem.getIdPersonagem(), nome_hab)
-        
-        personagem._idPersonagem = cursor.lastrowid
+            self.bd_vincular_habilidade(personagem.getIdPersonagem(), nome_hab)
+    
 
-    def bd_criar_habilidade(self, _nomeHabilidade: str) -> int:
+    def bd_criar_habilidade(self, _nomeHabilidade: str) -> None:
         sql = """
         INSERT OR IGNORE INTO habilidades (_nomeHabilidade) VALUES (?);
         """
@@ -98,7 +97,7 @@ class PersonagemCrud:
         _idHabilidade = self.bd_criar_habilidade(_nomeHabilidade,)
         sql = """
             INSERT OR IGNORE INTO personagensHabilidades (_idPersonagem, _idHabilidade)
-            VALUES (?, ?)     
+            VALUES (?, ?)   
         """
         self._conexao.execute(sql, (_idPersonagem, _idHabilidade,))
         self._conexao.commit()
@@ -109,9 +108,13 @@ class PersonagemCrud:
             (hab_antiga,)
             ).fetchone()
 
+        if linha is None:
+            print("Este personagem não possui habilidades.")
+            return None
+
         idAntigo = linha[0]
         self._conexao.execute(
-            """DELETE FROM personagensHabilidades WHERE _idPersonagem =?" \
+            """DELETE FROM personagensHabilidades WHERE _idPersonagem = ?
             AND _idHabilidade = ?
             """, (_idPersonagem, idAntigo),
             )
@@ -159,13 +162,13 @@ class PersonagemCrud:
                                _vigor = ?,
                                _destreza = ?,
                                _sabedoria = ?,
-                               _iniciativa = ?,
+                               _iniciativa = ?
             WHERE _idPersonagem = ?"""
-        self._conexao.execute(sql, (personagem.getNomePersonagem, personagem.getDescricao,
-                                       personagem.getTipo, personagem.getRaca, personagem.getClasse,
-                                       personagem.getForca, personagem.getInteligencia, personagem.getVigor,
-                                       personagem.getDestreza, personagem.getSabedoria, personagem.getIniciativa,
-                                       personagem.getIdJogador, _idPersonagem))
+        self._conexao.execute(sql, (personagem.getNomePersonagem(), personagem.getDescricao(),
+                                       personagem.getTipo(), personagem.getRaca(), personagem.getClasse(),
+                                       personagem.getForca(), personagem.getInteligencia(), personagem.getVigor(),
+                                       personagem.getDestreza(), personagem.getSabedoria(), personagem.getIniciativa(),
+                                       _idPersonagem))
         self._conexao.commit()
 
     def bd_excluir_personagem(self, _idPersonagem: int) -> None:
@@ -173,47 +176,49 @@ class PersonagemCrud:
         cursor = self._conexao.execute(sql, (_idPersonagem,))
         self._conexao.commit()
 
-    def bd_listar_personagens(self) -> list[Personagem]:
+    def bd_listar_todos_personagens(self) -> list[str]:
         sql = """SELECT _idPersonagem, _nomePersonagem
-                 FROM personagens ORDER BY _idPersonagem"""
+                 FROM personagens
+                 ORDER BY _idPersonagem"""
         cursor = self._conexao.execute(sql)
-        return [
-            Personagem(_idPersonagem=row[0],
-                       _nomePersonagem=row[1])
-        ##### ARRUMAR LISTA HABILIDADES, TABELA???
-            for row in cursor.fetchall()
-        ]
+        return self._conexao.execute(sql).fetchall()
 
-    def bd_listar_personagem(self, _idPersonagem: int, personagem: Personagem) -> None:
-        sql = """SELECT _idPersonagem, _nomePersonagem, _descricao, _tipo, _raca, _classe, _forca,
-                                       _inteligencia, _vigor, _destreza, _sabedoria, _iniciativa,
-                                       _habilidades
-                 FROM personagens WHERE _idPersonagem = ?"""
-        cursor = self._conexao.execute(sql, (personagem._nomePersonagem, personagem._descricao,
-                                       personagem._tipo, personagem._raca, personagem._classe,
-                                       personagem._forca, personagem._inteligencia, personagem._vigor,
-                                       personagem._destreza, personagem._sabedoria, personagem._iniciatica,
-                                       personagem._habilidades, personagem._idJogador))
-        row = cursor.fetchone()
-        if row is None:
+    def bd_obter_personagem(self, _idPersonagem: int) -> Personagem | None:
+        sql = """
+            SELECT _idPersonagem, _nomePersonagem, _descricao, _tipo, _raca, _classe,
+                _forca, _inteligencia, _vigor, _destreza, _sabedoria, _iniciativa, _idJogador
+            FROM personagens
+            WHERE _idPersonagem = ?
+        """
+        linha = self._conexao.execute(sql, (_idPersonagem,)).fetchone()
+        if linha is None:
             return None
-        return personagem(_idPersonagem=row[0],
-                       _nomePersonagem=row[1],
-                       _descricao=row[2],
-                       _tipo=row[3],
-                       _raca=row[4],
-                       _classe=row[5],
-                       _forca=row[6],
-                       _inteligencia=row[7],
-                       _vigor=row[8],
-                       _destreza=row[9],
-                       _sabedoria=row[10],
-                       _iniciativa=row[11],
-                       _habilidades=row[12])
+        return self._linha_para_personagem(linha)
 
-    def bd_listar_personagens_por_jogador(self, _idJogador: int, jogador: Jogador) -> None:
-        sql = ""
+    def _linha_para_personagem(self, linha) -> Personagem:
+        id_personagem = linha[0]
+        return Personagem(
+            _idPersonagem=id_personagem,
+            _nomePersonagem=linha[1],
+            _descricao=linha[2],
+            _tipo=linha[3],
+            _raca=linha[4],
+            _classe=linha[5],
+            _forca=linha[6],
+            _inteligencia=linha[7],
+            _vigor=linha[8],
+            _destreza=linha[9],
+            _sabedoria=linha[10],
+            _iniciativa=linha[11],
+            _habilidades=self.bd_listar_habilidades_personagem(id_personagem),
+            _idJogador=linha[12],
+        )
 
-        cursor = self._conexao.execute()
-
-        return ()
+    def bd_listar_personagens_por_jogador(self, _idJogador: int) -> list[tuple[int,str]]:
+        sql = """
+        SELECT _idPersonagem, _nomePersonagem
+        FROM personagens
+        WHERE _idJogador = ?
+        ORDER BY _nomePersonagem
+        """
+        return self._conexao.execute(sql, (_idJogador,)).fetchall()

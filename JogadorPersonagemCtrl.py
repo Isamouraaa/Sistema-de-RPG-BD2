@@ -33,11 +33,19 @@ class Controladora:
         self._crud_personagem.bd_criar_personagem(personagem)
 
     def criarHabilidade(self, nomeHab: str, _idPersonagem: int):
-        self._crud_personagem.bd_criar_habilidade(nomeHab)
-        self._crud_personagem.vincular_habilidade(_idPersonagem)
+        self._crud_personagem.bd_vincular_habilidade(_idPersonagem, nomeHab)
 
     def editarPersonagem(self, _idJogador: int, jogador: Jogador) -> None:
         self._crud_jogador.bd_editar_jogador(_idJogador, jogador)
+
+    def listarTodosPersonagens(self) -> list[str]:
+        self._crud_personagem.bd_listar_todos_personagens()
+
+    def obter_personagem(self, _idPersonagem: int) -> Personagem | None:
+        self._crud_personagem.bd_obter_personagem(_idPersonagem)
+
+    def listarPersonagensPorJogador(self, _idJogador: int) -> list[tuple[int,str]]:
+        self._crud_personagem.bd_listar_personagens_por_jogador(_idJogador)
 
     def vincular_habilidade(self, id_personagem: int, nome_habilidade: str) -> None:
         self._crud_personagem.bd_vincular_habilidade(id_personagem, nome_habilidade)
@@ -49,4 +57,4 @@ class Controladora:
         self._crud_personagem.bd_deletar_habilidade(id_personagem, nome_habilidade)
 
     def listar_habilidades(self, id_personagem: int) -> list[str]:
-        return self._crud_personagem.bd_listar_habilidades_do_personagem(id_personagem)
+        self._crud_personagem.bd_listar_habilidades_personagem(id_personagem)
