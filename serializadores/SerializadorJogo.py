@@ -1,41 +1,48 @@
 import json
-from entidades.Jogo import Jogo
-
+from entidades.jogo import Jogo
 
 class SerializadorJogo:
 
-    def jogo_para_dict(self, jogo: Jogo) -> dict:
-        return {
-            "id_jogo": jogo.id_jogo,
-            "nome": jogo.nome,
-            "descricao": jogo.descricao,
-            "id_mestre": jogo.id_mestre,
-        }
-
-    def linha_para_jogo(self, linha: tuple) -> Jogo:
-        return Jogo(id_jogo=linha[0], id_mestre=linha[1], nome=linha[2], descricao=linha[3] or "")
-
-    def serializar_infos_jogos(self, jogos: list[Jogo]) -> str:
-        payload = [self.jogo_para_dict(jogo) for jogo in jogos]
+    def serializarInfosJogos(self, jogos):
+        payload = [self._jogoParaDict(jogo) for jogo in jogos]
         return json.dumps(payload, ensure_ascii=False, indent=2)
 
-    def desserializar_infos_jogos(self, dados: str) -> list[Jogo]:
+    def desserializarInfosJogos(self, dados):
         try:
-            payload: list[dict] = json.loads(dados)
+            payload = json.loads(dados)
         except json.JSONDecodeError as exc:
             raise ValueError(f"JSON inválido: {exc}") from exc
 
-        jogos: list[Jogo] = []
+        jogos = []
         for item in payload:
             try:
                 jogos.append(
                     Jogo(
-                        id_jogo=item.get("id_jogo"),
+                        idJogo=item.get("idJogo"),
                         nome=item["nome"],
-                        descricao=item.get("descricao", ""),
-                        id_mestre=item.get("id_mestre"),
+                        descricao=item["descricao"],
+                        idMestre=item.get("idMestre"),
+                        nomeMestre=item.get("nomeMestre"),
+                        totalJogadores=item.get("totalJogadores", 0),
+                        totalPersonagens=item.get("totalPersonagens", 0),
+                        classeMaisComum=item.get("classeMaisComum"),
+                        forcaMedia=item.get("forcaMedia", 0.0),
                     )
                 )
             except KeyError as exc:
                 raise ValueError(f"Campo obrigatório ausente no JSON: {exc}") from exc
         return jogos
+
+    @staticmethod
+    def _jogoParaDict(jogo):
+        return {
+            "idJogo": jogo.getIdJogo(),
+            "nome": jogo.getNome(),
+            "descricao": jogo.getDescricao(),
+            "idMestre": jogo.getIdMestre(),
+            "nomeMestre": jogo.getNomeMestre(),
+            "totalJogadores": jogo.getTotalJogadores(),
+            "totalPersonagens": jogo.getTotalPersonagens(),
+            "classeMaisComum": jogo.getClasseMaisComum(),
+            "forcaMedia": jogo.getForcaMedia(),
+        }

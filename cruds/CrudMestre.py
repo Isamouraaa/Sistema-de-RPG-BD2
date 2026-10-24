@@ -1,58 +1,51 @@
 import sqlite3
-from entidades.Mestre import Mestre
-from serializadores.SerializadorMestre import SerializadorMestre
 
+from entidades.mestre import Mestre
 
 class CrudMestre:
-    # aqui tem a conexao crud -> banco
-    # aqui tem a conexao crud -> serializadora
 
-    def __init__(self, conexao: sqlite3.Connection) -> None:
+    def __init__(self, conexao):
         self._conexao = conexao
-        self._serializador = SerializadorMestre()
+        self._criarTabela()
 
-    def bd_criar_mestre(self, mestre: Mestre) -> None:
-        dados = self._serializador.mestre_para_dict(mestre)
-        sql = "INSERT INTO MESTRE (nome) VALUES (?)"
-        cursor = self._conexao.execute(sql, (dados["nome"],))
-        self._conexao.commit()
-        mestre.id_mestre = cursor.lastrowid
-
-    def bd_editar_mestre(self, id_mestre: int, mestre: Mestre) -> None:
-        dados = self._serializador.mestre_para_dict(mestre)
-        sql = "UPDATE MESTRE SET nome = ? WHERE IDmestre = ?"
-        self._conexao.execute(sql, (dados["nome"], id_mestre))
+    def _criarTabela(self):
+        sql = """
+            CREATE TABLE IF NOT EXISTS mestres (
+                id_mestre INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome      VARCHAR(255) NOT NULL
+            )
+        """
+        self._conexao.execute(sql)
         self._conexao.commit()
 
-    def bd_excluir_mestre(self, id_mestre: int) -> None:
-        sql = "DELETE FROM MESTRE WHERE IDmestre = ?"
-        self._conexao.execute(sql, (id_mestre,))
+    def bdCriarMestre(self, mestre):
+        sql = "INSERT INTO mestres (nome) VALUES (?)"
+        cursor = self._conexao.execute(sql, (mestre.getNome(),))
+        self._conexao.commit()
+        mestre.setIdMestre(cursor.lastrowid)
+
+    def bdEditarMestre(self, idMestre, mestre):
+        sql = "UPDATE mestres SET nome = ? WHERE id_mestre = ?"
+        self._conexao.execute(sql, (mestre.getNome(), idMestre))
         self._conexao.commit()
 
-    def bd_obter_mestre_unico(self) -> Mestre | None:
-        mestres = self.bd_listar_mestres()
-        return mestres[0] if mestres else None
+    def bdExcluirMestre(self, idMestre):
+        sql = "DELETE FROM mestres WHERE id_mestre = ?"
+        self._conexao.execute(sql, (idMestre,))
+        self._conexao.commit()
 
-    def bd_listar_mestres(self) -> list[Mestre]:
-        sql = "SELECT IDmestre, nome FROM MESTRE ORDER BY IDmestre"
+    def bdListarMestres(self):
+        sql = "SELECT id_mestre, nome FROM mestres ORDER BY id_mestre"
         cursor = self._conexao.execute(sql)
-        return [self._serializador.linha_para_mestre(row) for row in cursor.fetchall()]
+        return [
+            Mestre(idMestre=row[0], nome=row[1])
+            for row in cursor.fetchall()
+        ]
 
-    def bd_listar_mestre(self, id_mestre: int) -> Mestre | None:
-        sql = "SELECT IDmestre, nome FROM MESTRE WHERE IDmestre = ?"
-        cursor = self._conexao.execute(sql, (id_mestre,))
+    def bdListarMestre(self, idMestre):
+        sql = "SELECT id_mestre, nome FROM mestres WHERE id_mestre = ?"
+        cursor = self._conexao.execute(sql, (idMestre,))
         row = cursor.fetchone()
         if row is None:
             return None
-        return self._serializador.linha_para_mestre(row)
-
-    def bd_listar_jogos_do_mestre(self, id_mestre: int) -> list[tuple[int, str, str]]:
-        sql = "SELECT IDjogo, nome, descricao FROM JOGO WHERE IDmestre = ? ORDER BY IDjogo"
-        cursor = self._conexao.execute(sql, (id_mestre,))
-        return [(r[0], r[1], r[2] or "") for r in cursor.fetchall()]
-
-    def serializar(self) -> str:
-        return self._serializador.serializar_infos_mestres(self.bd_listar_mestres())
-
-    def desserializar(self, dados: str) -> list[Mestre]:
-        return self._serializador.desserializar_infos_mestres(dados)
+        return Mestre(idMestre=row[0], nome=row[1])

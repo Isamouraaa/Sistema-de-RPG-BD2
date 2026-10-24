@@ -1,118 +1,89 @@
 import sqlite3
-from cruds.CrudJogador import CrudJogador
+
+from entidades.jogador import Jogador
+from cruds.CrudJogador import JogadorCrud
+from entidades.personagem import Personagem
 from cruds.CrudPersonagem import CrudPersonagem
-from entidades.Jogador import Jogador
-from entidades.Personagem import Personagem
+from serializadores.SerializadorJogador import SerializadorJogador
+from serializadores.SerializadorPersonagem import SerializadorPersonagem
 
 
 class ControladoraJogadorPersonagem:
-    # aqui tem a conexao controladora -> crud
 
-    def __init__(self, conexao: sqlite3.Connection) -> None:
+    def __init__(self, conexao):
         self._conexao = conexao
-        self._crud_jogador = CrudJogador(conexao)
-        self._crud_personagem = CrudPersonagem(conexao)
+        self._crudJogador = JogadorCrud(conexao)
+        self._crudPersonagem = CrudPersonagem(conexao)
+        self._serializadorJogador = SerializadorJogador()
+        self._serializadorPersonagem = SerializadorPersonagem()
 
-    def criarJogador(self, jogador: Jogador) -> None:
-        self._crud_jogador.bd_criar_jogador(jogador)
+    # --- Operações de Jogador ---
 
-    def editarJogador(self, idJogador: int, jogador: Jogador) -> None:
-        self._crud_jogador.bd_editar_jogador(idJogador, jogador)
+    def criarJogador(self, jogador):
+        dadosJson = self._serializadorJogador.serializarInfosJogadores([jogador])
+        jogadorValidado = self._serializadorJogador.desserializarInfosJogadores(dadosJson)[0]
+        self._crudJogador.bdCriarJogador(jogadorValidado)
+        jogador.setIdJogador(jogadorValidado.getIdJogador())
 
-    def excluirJogador(self, idJogador: int) -> None:
-        self._crud_jogador.bd_excluir_jogador(idJogador)
+    def editarJogador(self, idJogador, jogador):
+        dadosJson = self._serializadorJogador.serializarInfosJogadores([jogador])
+        jogadorValidado = self._serializadorJogador.desserializarInfosJogadores(dadosJson)[0]
+        self._crudJogador.bdEditarJogador(idJogador, jogadorValidado)
 
-    def listarJogadores(self) -> list[Jogador]:
-        return self._crud_jogador.bd_listar_jogadores()
+    def excluirJogador(self, idJogador):
+        self._crudJogador.bdExcluirJogador(idJogador)
 
-    def obterJogador(self, idJogador: int) -> Jogador | None:
-        return self._crud_jogador.bd_listar_jogador(idJogador)
+    def listarJogadores(self):
+        jogadores = self._crudJogador.bdListarJogadores()
+        dadosJson = self._serializadorJogador.serializarInfosJogadores(jogadores)
+        return self._serializadorJogador.desserializarInfosJogadores(dadosJson)
 
-    def criarPersonagem(self, personagem: Personagem) -> None:
-        self._crud_personagem.bd_criar_personagem(personagem)
+    def obterJogador(self, idJogador):
+        jogador = self._crudJogador.bdObterJogador(idJogador)
+        if jogador is None:
+            return None
+        dadosJson = self._serializadorJogador.serializarInfosJogadores([jogador])
+        return self._serializadorJogador.desserializarInfosJogadores(dadosJson)[0]
 
-    def editarPersonagem(self, idPersonagem: int, personagem: Personagem) -> None:
-        self._crud_personagem.bd_editar_personagem(idPersonagem, personagem)
+    # --- Operações de Personagem ---
 
-    def excluirPersonagem(self, idPersonagem: int) -> None:
-        self._crud_personagem.bd_excluir_personagem(idPersonagem)
+    def criarPersonagem(self, personagem):
+        dadosJson = self._serializadorPersonagem.serializarInfosPersonagens([personagem])
+        personagemValidado = self._serializadorPersonagem.desserializarInfosPersonagens(dadosJson)[0]
+        self._crudPersonagem.bdCriarPersonagem(personagemValidado)
+        personagem.setIdPersonagem(personagemValidado.getIdPersonagem())
 
-    def listarTodosPersonagens(self) -> list[Personagem]:
-        return self._crud_personagem.bd_listar_personagens()
+    def editarPersonagem(self, idPersonagem, personagem):
+        dadosJson = self._serializadorPersonagem.serializarInfosPersonagens([personagem])
+        personagemValidado = self._serializadorPersonagem.desserializarInfosPersonagens(dadosJson)[0]
+        self._crudPersonagem.bdEditarPersonagem(idPersonagem, personagemValidado)
 
-    def obterPersonagem(self, idPersonagem: int) -> Personagem | None:
-        return self._crud_personagem.bd_listar_personagem(idPersonagem)
+    def excluirPersonagem(self, idPersonagem):
+        self._crudPersonagem.bdExcluirPersonagem(idPersonagem)
 
-    def listarPersonagensPorJogador(self, idJogador: int) -> list[Personagem]:
-        return self._crud_personagem.bd_listar_personagens_por_jogador(idJogador)
+    def listarTodosPersonagens(self):
+        return self._crudPersonagem.bdListarTodosPersonagens()
 
-    def listarTodasHabilidades(self) -> list[tuple]:
-        return self._crud_personagem.bd_listar_todas_habilidades()
+    def obterPersonagem(self, idPersonagem):
+        personagem = self._crudPersonagem.bdObterPersonagem(idPersonagem)
+        if personagem is None:
+            return None
+        dadosJson = self._serializadorPersonagem.serializarInfosPersonagens([personagem])
+        return self._serializadorPersonagem.desserializarInfosPersonagens(dadosJson)[0]
 
-    def obterHabilidade(self, id_habilidade: int) -> tuple | None:
-        return self._crud_personagem.bd_obter_habilidade(id_habilidade)
+    def listarPersonagensPorJogador(self, idJogador):
+        return self._crudPersonagem.bdListarPersonagensPorJogador(idJogador)
 
-    def listarHabilidadesDetalhadasPersonagem(self, id_personagem: int) -> list[tuple]:
-        return self._crud_personagem.bd_listar_habilidades_detalhadas_personagem(id_personagem)
+    # --- Operações de Habilidade ---
 
-    def vincularHabilidadePorId(self, id_personagem: int, id_habilidade: int) -> None:
-        self._crud_personagem.bd_vincular_habilidade_por_id(id_personagem, id_habilidade)
+    def vincularHabilidade(self, idPersonagem, nomeHabilidade):
+        self._crudPersonagem.bdVincularHabilidade(idPersonagem, nomeHabilidade)
 
-    def desvincularHabilidadePorId(self, id_personagem: int, id_habilidade: int) -> None:
-        self._crud_personagem.bd_desvincular_habilidade_por_id(id_personagem, id_habilidade)
+    def alterarHabilidade(self, idPersonagem, nomeAntigo, nomeNovo):
+        self._crudPersonagem.bdAlterarHabilidade(idPersonagem, nomeAntigo, nomeNovo)
 
-    def criarHabilidade(self, idPersonagem: int, nomeHab: str) -> None:
-        self._crud_personagem.bd_vincular_habilidade(idPersonagem, nomeHab)
+    def deletarHabilidade(self, idPersonagem, nomeHabilidade):
+        self._crudPersonagem.bdDeletarHabilidade(idPersonagem, nomeHabilidade)
 
-    def vincularHabilidade(self, idPersonagem: int, nomeHabilidade: str) -> None:
-        self._crud_personagem.bd_vincular_habilidade(idPersonagem, nomeHabilidade)
-
-    def alterarHabilidade(self, idPersonagem: int, nomeAntigo: str, nomeNovo: str) -> None:
-        self._crud_personagem.bd_alterar_habilidade(idPersonagem, nomeAntigo, nomeNovo)
-
-    def deletarHabilidade(self, idPersonagem: int, nomeHabilidade: str) -> None:
-        self._crud_personagem.bd_deletar_habilidade(idPersonagem, nomeHabilidade)
-
-    def listarHabilidades(self, idPersonagem: int) -> list[str]:
-        return self._crud_personagem.bd_listar_habilidades_personagem(idPersonagem)
-
-    def listarPersonagensPorHabilidade(self, nomeHabilidade: str) -> list[Personagem]:
-        return self._crud_personagem.bd_listar_personagens_por_habilidade(nomeHabilidade)
-
-    def listarPersonagensPorJogo(self, idJogo: int) -> list[Personagem]:
-        return self._crud_personagem.bd_listar_personagens_por_jogo(idJogo)
-
-    def listarPersonagensPorTipo(self, tipo: str) -> list[Personagem]:
-        return self._crud_personagem.bd_listar_personagens_por_tipo(tipo)
-
-    def estatisticasPersonagensHabilidades(self):
-        return self._crud_personagem.bd_estatisticas_personagens_habilidades()
-
-    def estatisticasHabilidadesClasses(self):
-        return self._crud_personagem.bd_estatisticas_habilidades_classes()
-
-    def estatisticasPorTipo(self):
-        return self._crud_personagem.bd_estatisticas_por_tipo()
-
-    def estatisticasTiposPorJogo(self):
-        return self._crud_personagem.bd_estatisticas_tipos_por_jogo()
-
-    def consultarTipoECaracteristica(self, tipo: str = "", classe: str = "", forca_minima: int = 0) -> list[dict]:
-        return self._crud_personagem.bd_consultar_tipo_e_caracteristica(tipo, classe, forca_minima)
-
-    def serializarJogadores(self) -> str:
-        return self._crud_jogador.serializar()
-
-    def desserializarJogadores(self, dados: str) -> list[Jogador]:
-        return self._crud_jogador.desserializar(dados)
-
-    def serializarPersonagens(self) -> str:
-        return self._crud_personagem.serializar()
-
-    def desserializarPersonagens(self, dados: str) -> list[Personagem]:
-        return self._crud_personagem.desserializar(dados)
-
-
-Controladora = ControladoraJogadorPersonagem
-ControladoraPersonagem = ControladoraJogadorPersonagem
-JogadorPersonagemControladora = ControladoraJogadorPersonagem
+    def listarHabilidades(self, idPersonagem):
+        return self._crudPersonagem.bdListarHabilidadesPersonagem(idPersonagem)

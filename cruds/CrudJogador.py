@@ -1,55 +1,51 @@
 import sqlite3
-from entidades.Jogador import Jogador
-from serializadores.SerializadorJogador import SerializadorJogador
 
+from entidades.jogador import Jogador
 
-class CrudJogador:
-    # aqui tem a conexao crud -> banco
-    # aqui tem a conexao crud -> serializadora
+class JogadorCrud:
 
-    def __init__(self, conexao: sqlite3.Connection) -> None:
+    def __init__(self, conexao):
         self._conexao = conexao
-        self._serializador = SerializadorJogador()
+        self._criarTabela()
 
-    def bd_criar_jogador(self, jogador: Jogador) -> None:
-        dados = self._serializador.jogador_para_dict(jogador)
-        sql = "INSERT INTO JOGADOR (nomejogador) VALUES (?)"
-        cursor = self._conexao.execute(sql, (dados["_nomeJogador"],))
-        self._conexao.commit()
-        jogador.setId(cursor.lastrowid)
-
-    def bd_editar_jogador(self, id_jogador: int, jogador: Jogador) -> None:
-        dados = self._serializador.jogador_para_dict(jogador)
-        sql = "UPDATE JOGADOR SET nomejogador = ? WHERE IDJogador = ?"
-        self._conexao.execute(sql, (dados["_nomeJogador"], id_jogador))
+    def _criarTabela(self):
+        sql = """
+            CREATE TABLE IF NOT EXISTS jogadores (
+                _idJogador   INTEGER PRIMARY KEY AUTOINCREMENT,
+                _nomeJogador VARCHAR(255) NOT NULL
+            )
+        """
+        self._conexao.execute(sql)
         self._conexao.commit()
 
-    def bd_excluir_jogador(self, id_jogador: int) -> None:
-        sql = "DELETE FROM JOGADOR WHERE IDJogador = ?"
-        self._conexao.execute(sql, (id_jogador,))
+    def bdCriarJogador(self, jogador):
+        sql = "INSERT INTO jogadores (_nomeJogador) VALUES (?)"
+        cursor = self._conexao.execute(sql, (jogador.getNomeJogador(),))
+        self._conexao.commit()
+        jogador.setIdJogador(cursor.lastrowid)
+
+    def bdEditarJogador(self, idJogador, jogador):
+        sql = "UPDATE jogadores SET _nomeJogador = ? WHERE _idJogador = ?"
+        self._conexao.execute(sql, (jogador.getNomeJogador(), idJogador))
         self._conexao.commit()
 
-    def bd_listar_jogadores(self) -> list[Jogador]:
-        sql = "SELECT IDJogador, nomejogador FROM JOGADOR ORDER BY IDJogador"
+    def bdExcluirJogador(self, idJogador):
+        sql = "DELETE FROM jogadores WHERE _idJogador = ?"
+        self._conexao.execute(sql, (idJogador,))
+        self._conexao.commit()
+
+    def bdListarJogadores(self):
+        sql = "SELECT _idJogador, _nomeJogador FROM jogadores ORDER BY _idJogador"
         cursor = self._conexao.execute(sql)
-        return [self._serializador.linha_para_jogador(row) for row in cursor.fetchall()]
+        return [
+            Jogador(idJogador=row[0], nomeJogador=row[1])
+            for row in cursor.fetchall()
+        ]
 
-    def bd_listar_jogador(self, id_jogador: int) -> Jogador | None:
-        sql = "SELECT IDJogador, nomejogador FROM JOGADOR WHERE IDJogador = ?"
-        cursor = self._conexao.execute(sql, (id_jogador,))
+    def bdObterJogador(self, idJogador):
+        sql = "SELECT _idJogador, _nomeJogador FROM jogadores WHERE _idJogador = ?"
+        cursor = self._conexao.execute(sql, (idJogador,))
         row = cursor.fetchone()
         if row is None:
             return None
-        return self._serializador.linha_para_jogador(row)
-
-    def bd_obter_jogador(self, id_jogador: int) -> Jogador | None:
-        return self.bd_listar_jogador(id_jogador)
-
-    def serializar(self) -> str:
-        return self._serializador.serializar_infos_jogadores(self.bd_listar_jogadores())
-
-    def desserializar(self, dados: str) -> list[Jogador]:
-        return self._serializador.desserializar_infos_jogadores(dados)
-
-
-JogadorCrud = CrudJogador
+        return Jogador(idJogador=row[0], nomeJogador=row[1])
