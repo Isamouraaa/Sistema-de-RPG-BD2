@@ -2,7 +2,7 @@ import sqlite3
 
 from entidades.jogador import Jogador
 
-class JogadorCrud:
+class CrudJogador:
 
     def __init__(self, conexao):
         self._conexao = conexao

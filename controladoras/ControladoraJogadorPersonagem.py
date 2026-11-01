@@ -1,7 +1,7 @@
 import sqlite3
 
 from entidades.jogador import Jogador
-from cruds.CrudJogador import JogadorCrud
+from cruds.CrudJogador import CrudJogador
 from entidades.personagem import Personagem
 from cruds.CrudPersonagem import CrudPersonagem
 from serializadores.SerializadorJogador import SerializadorJogador
@@ -12,7 +12,7 @@ class ControladoraJogadorPersonagem:
 
     def __init__(self, conexao):
         self._conexao = conexao
-        self._crudJogador = JogadorCrud(conexao)
+        self._crudJogador = CrudJogador(conexao)
         self._crudPersonagem = CrudPersonagem(conexao)
         self._serializadorJogador = SerializadorJogador()
         self._serializadorPersonagem = SerializadorPersonagem()

@@ -9,7 +9,6 @@ from entidades.jogo import Jogo
 from entidades.mestre import Mestre
 from entidades.personagem import Personagem
 
-
 class Main:
     def __init__(self):
         self.nomeBanco = "bancorpg.sqlite"
@@ -28,6 +27,47 @@ class Main:
             print("Saindo do sistema...")
             sys.exit(0)
         return valorDigitado
+
+    def listaItens(self, numItem):
+        '''jogo, jogador, personagem, mestre'''
+        if numItem == "1":
+            listaJogos = self.controladoraJogo.listarJogos()
+            if len(listaJogos) > 0:
+                print("Jogos cadastrados:")
+                for jogo in listaJogos:
+                    print(f"[{jogo.getId()}] {jogo.getNome()}")
+            else:
+                pass
+
+        elif numItem == "2":
+            listaJogadores = self.controladoraPersonagem.listarJogadores()
+            if len(listaJogadores) > 0:
+                print("Jogadores cadastrados:")
+                for jogador in listaJogadores:
+                    print(f"[{jogador.getId()}] {jogador.getNome()}")
+            else:
+                pass
+
+        elif numItem == "3":
+            listaPersonagens = self.controladoraPersonagem.listarTodosPersonagens()
+            if len(listaPersonagens) > 0:
+                print("Personagens cadastrados:")
+                for personagem in listaPersonagens:
+                    print(f"[{personagem.getId()}] {personagem.getNome()}")
+            else:
+                pass
+
+        elif numItem == "4":
+            listaMestres = self.controladoraJogo.listarMestres()
+            if len(listaMestres) > 0:
+                print("Mestres cadastrados:")
+                for mestre in listaMestres:
+                    print(f"[{mestre.getId()}] {mestre.getNome()}")
+            else:
+                pass
+
+        else:
+            pass
 
     def menu(self):
         self.selecionarMestreSessao()
@@ -228,6 +268,7 @@ class Main:
 
             opcaoEdicao = self.lerEntrada()
             if opcaoEdicao == "1":
+                self.listaItens(opcaoEdicao)
                 idJogoTexto = self.lerEntrada("ID do Jogo a editar: ")
                 if idJogoTexto.isdigit():
                     jogoEncontrado = self.controladoraJogo.obterJogo(int(idJogoTexto))
@@ -247,6 +288,7 @@ class Main:
                 self.lerEntrada("\nPressione Enter para continuar...")
 
             elif opcaoEdicao == "2":
+                self.listaItens(opcaoEdicao)
                 idJogadorTexto = self.lerEntrada("ID do Jogador a editar: ")
                 if idJogadorTexto.isdigit():
                     jogadorEncontrado = self.controladoraPersonagem.obterJogador(int(idJogadorTexto))
@@ -262,6 +304,7 @@ class Main:
                 self.lerEntrada("\nPressione Enter para continuar...")
 
             elif opcaoEdicao == "3":
+                self.listaItens(opcaoEdicao)
                 idPersonagemTexto = self.lerEntrada("ID do Personagem a editar: ")
                 if idPersonagemTexto.isdigit():
                     personagemEncontrado = self.controladoraPersonagem.obterPersonagem(int(idPersonagemTexto))
@@ -289,6 +332,7 @@ class Main:
                 self.lerEntrada("\nPressione Enter para continuar...")
 
             elif opcaoEdicao == "4":
+                self.listaItens(opcaoEdicao)
                 idMestreTexto = self.lerEntrada("ID do Mestre a editar: ")
                 if idMestreTexto.isdigit():
                     mestreEncontrado = self.controladoraJogo.visualizarMestre(int(idMestreTexto))
